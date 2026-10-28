@@ -1,0 +1,14 @@
+{
+  "name": "すっきり容量整理",
+  "short_name": "すっきり整理",
+  "description": "クラウドに保存ずみの写真・動画を見つけて、容量を安全に空けるツール",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFF8EE",
+  "theme_color": "#FFF8EE",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

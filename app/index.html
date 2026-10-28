@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="local-token" content="">
+  <title>すっきり容量整理</title>
+  <meta name="description" content="クラウドに保存ずみの写真・動画を見つけて、スマホやパソコンの容量を安全に空けるツール">
+  <meta name="theme-color" content="#FFF8EE">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icon.svg" alt="" width="40" height="40">
+      <span>すっきり容量整理</span>
+    </div>
+    <button type="button" class="textsize" id="btn-textsize" aria-pressed="false">文字を大きく</button>
+  </header>
+
+  <p class="banner demo" id="demo-banner" hidden>これはデモです。本物の写真やクラウドには一切さわりません。</p>
+  <p class="banner warn" id="offline-banner" role="alert" hidden>ツールの裏方が止まりました。ツールのフォルダの「はじめる」を、もう一度ダブルクリックしてください。</p>
+
+  <ol class="steps" id="steps" aria-label="すすみ具合" hidden>
+    <li data-step="1"><span class="num">1</span><span class="step-text">クラウドに<br>つなぐ</span></li>
+    <li data-step="2"><span class="num">2</span><span class="step-text">写真を<br>しらべる</span></li>
+    <li data-step="3"><span class="num">3</span><span class="step-text">すっきり<br>させる</span></li>
+  </ol>
+
+  <main>
+    <!-- 起動中 -->
+    <section class="screen" id="screen-loading">
+      <p class="loading-line big"><span class="spinner"></span>準備しています…</p>
+    </section>
+
+    <!-- 設定がまだのとき（設定する方向け） -->
+    <section class="screen" id="screen-setup" hidden>
+      <h1 tabindex="-1">はじめに設定が必要です</h1>
+      <div id="setup-body"></div>
+    </section>
+
+    <!-- ① クラウドにつなぐ -->
+    <section class="screen" id="screen-connect" hidden>
+      <h1 tabindex="-1">クラウドにつなぎましょう</h1>
+      <p class="lead">写真や動画を保存しているクラウドを押してください。<br>ログインの画面が出たら、いつものアカウントでログインします。</p>
+      <div class="cloud-list" id="cloud-list"></div>
+      <p class="hint" id="connect-hint">使っているクラウドが1つだけなら、1つつなげば大丈夫です。</p>
+      <h2 class="sub-head">Google フォト・iCloud 写真をお使いの方</h2>
+      <div class="cloud-list" id="photo-service-list"></div>
+      <div class="info-box">
+        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+        <p>パスワードはこのツールには届きません。<br>ログインは Google・Microsoft の公式の画面で行います。</p>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="btn-connect-next" disabled>次へ進む</button>
+      </div>
+    </section>
+
+    <!-- ② しらべる場所 -->
+    <section class="screen" id="screen-folder" hidden>
+      <h1 tabindex="-1" id="folder-title">しらべる場所を選びましょう</h1>
+      <p class="lead" id="folder-lead"></p>
+      <div id="folder-body"></div>
+      <div class="actions">
+        <button type="button" class="link-btn" id="btn-folder-back">← クラウドの選択にもどる</button>
+      </div>
+    </section>
+
+    <!-- 進み具合（しらべる・保存・削除で共通） -->
+    <section class="screen" id="screen-progress" hidden>
+      <h1 tabindex="-1" id="progress-title">しらべています</h1>
+      <div class="progress-card">
+        <p class="progress-pct" id="progress-pct" aria-hidden="true"></p>
+        <div class="bar" id="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="bar-fill" id="progress-fill"></div>
+        </div>
+        <p class="progress-eta" id="progress-eta"></p>
+        <p class="progress-main" id="progress-main" aria-live="polite"></p>
+        <p class="progress-sub" id="progress-sub"></p>
+      </div>
+      <p class="power-warn" id="progress-power" role="alert" hidden></p>
+      <ol class="phase-list" id="phase-list"></ol>
+      <p class="note center" id="progress-note"></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" id="btn-cancel">中止する</button>
+      </div>
+    </section>
+
+    <!-- ③ 結果 -->
+    <section class="screen" id="screen-results" hidden>
+      <h1 tabindex="-1">しらべ終わりました</h1>
+      <p class="lead" id="results-lead"></p>
+      <div id="results-hero"></div>
+      <div class="result-cards" id="results-cards"></div>
+      <div class="actions">
+        <button type="button" class="link-btn" id="btn-results-other">← ほかの場所をしらべる</button>
+      </div>
+    </section>
+
+    <!-- 削除するものの確認 -->
+    <section class="screen" id="screen-review" hidden>
+      <h1 tabindex="-1" id="review-title">削除するものを確かめましょう</h1>
+      <p class="lead" id="review-lead"></p>
+      <div class="howto" id="review-howto" hidden></div>
+      <div class="grid" id="review-grid"></div>
+      <div class="actions">
+        <button type="button" class="link-btn" id="btn-review-back">← 結果にもどる</button>
+      </div>
+      <div class="review-bar" id="review-bar">
+        <p class="review-sum" id="review-sum"></p>
+        <button type="button" class="btn danger" id="btn-review-delete">削除へ進む</button>
+      </div>
+    </section>
+
+    <!-- 完了 -->
+    <section class="screen" id="screen-done" hidden>
+      <div class="celebrate" aria-hidden="true">
+        <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+        <span class="done-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+      </div>
+      <h1 tabindex="-1" id="done-title">すっきりしました！</h1>
+      <p class="done-amount" id="done-amount"></p>
+      <p class="lead center" id="done-lead"></p>
+      <div id="done-extra"></div>
+      <div class="actions stack">
+        <button type="button" class="btn primary" id="btn-done-home">はじめにもどる</button>
+        <div id="done-links" class="stack"></div>
+      </div>
+    </section>
+    <!-- Google フォト・iCloud 写真の公式機能の案内 -->
+    <section class="screen" id="screen-guide" hidden>
+      <h1 tabindex="-1" id="guide-title"></h1>
+      <div id="guide-body"></div>
+      <div class="actions">
+        <button type="button" class="link-btn" id="btn-guide-back">← もどる</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 充電の案内 -->
+  <dialog id="dlg-power" class="dlg" aria-labelledby="power-title">
+    <div class="power-illust" aria-hidden="true">
+      <svg viewBox="0 0 120 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="14" width="54" height="36" rx="8"/><path d="M64 26v12"/><path d="M16 24v16M26 24v16" class="power-bars"/>
+        <path d="M86 20v10M100 20v10M80 30h26v6a13 13 0 0 1-26 0zM93 49v9"/>
+      </svg>
+    </div>
+    <h2 id="power-title">充電器をつないでください</h2>
+    <p class="dlg-big">写真や動画がたくさんあると、終わるまで時間がかかります。<br>途中で電源が切れないよう、<b>充電器をつないでから</b>はじめましょう。</p>
+    <p class="power-status" id="power-status"></p>
+    <p class="note">充電器をつなぐと、自動ではじまります。</p>
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="power-skip">充電せずにはじめる</button>
+    </div>
+  </dialog>
+
+  <!-- 削除の最終確認 -->
+  <dialog id="dlg-delete" class="dlg" aria-labelledby="del-title">
+    <h2 id="del-title">本当に削除しますか？</h2>
+    <p class="dlg-big" id="del-summary"></p>
+    <ul class="checklist" id="del-points"></ul>
+    <label class="confirm-check">
+      <input type="checkbox" id="del-agree">
+      <span>上の内容を読んで、確認しました</span>
+    </label>
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="del-cancel">やめる</button>
+      <button type="button" class="btn danger" id="del-ok" disabled>削除する</button>
+    </div>
+  </dialog>
+
+  <!-- クラウドへの保存の確認 -->
+  <dialog id="dlg-upload" class="dlg" aria-labelledby="up-title">
+    <h2 id="up-title">クラウドに保存します</h2>
+    <p class="dlg-big" id="up-summary"></p>
+    <div id="up-targets"></div>
+    <div id="up-capacity"></div>
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="up-cancel">やめる</button>
+      <button type="button" class="btn primary" id="up-ok" disabled>保存する</button>
+    </div>
+  </dialog>
+
+  <!-- お知らせ -->
+  <dialog id="dlg-message" class="dlg" aria-labelledby="msg-title">
+    <div class="msg-head"><span class="msg-icon" id="msg-icon"></span><h2 id="msg-title"></h2></div>
+    <div class="msg-body" id="msg-body"></div>
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="msg-cancel" hidden></button>
+      <button type="button" class="btn primary" id="msg-ok">わかりました</button>
+    </div>
+  </dialog>
+
+  <noscript><p class="banner warn">このツールを使うには JavaScript を有効にしてください。</p></noscript>
+</body>
+</html>

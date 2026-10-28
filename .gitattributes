@@ -1,0 +1,2 @@
+# 起動ファイルは Windows 用の文字コード（Shift_JIS・CRLF）のまま保つ
+*.bat -text
