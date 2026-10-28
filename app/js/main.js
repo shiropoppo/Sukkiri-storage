@@ -293,7 +293,9 @@ async function init() {
       S.mode = 'pick';
       S.source = new PickSource();
     }
-    if (cfg.googleClientId) S.clouds.push(new GoogleDrive(cfg.googleClientId));
+    if (cfg.googleClientId) {
+      S.clouds.push(new GoogleDrive(cfg.googleClientId, { redirect: S.device === 'android' || S.device === 'ios' }));
+    }
     if (cfg.microsoftClientId) S.clouds.push(new OneDrive(cfg.microsoftClientId, cfg.microsoftTenant));
   }
 
@@ -304,16 +306,19 @@ async function init() {
     return;
   }
 
-  const od = S.clouds.find((c) => c.handleRedirect);
-  const back = od ? await od.handleRedirect() : null;
+  // ログイン画面から戻ってきたときの受け取り（OneDrive と、スマホの Google）
+  let back = null;
+  for (const c of S.clouds) {
+    const r = c.handleRedirect ? await c.handleRedirect() : null;
+    if (r) back = { cloud: c, ...r };
+  }
 
   show('connect', 1);
   renderConnect();
   for (const c of S.clouds) c.prepare().then(renderConnect).catch(() => renderConnect());
   await Promise.all(S.clouds.filter((c) => c.connected).map(refreshAccount));
   renderConnect();
-  if (back?.error) loginError(od, back.error);
-  else if (back?.ok) await refreshAccount(od).then(renderConnect);
+  if (back?.error) loginError(back.cloud, back.error);
 }
 
 function applyTextSize(large, remember = false) {
@@ -513,11 +518,20 @@ function reconnect(c) {
 }
 
 async function doReconnect(c) {
-  if (c instanceof OneDrive) {
+  // ページごとログイン画面へ移る方式では、いまの画面の内容は引き継げない。
+  // しらべた結果は覚えているので、戻ってからもう一度しらべれば早く進む。
+  if (c instanceof OneDrive || c.redirectMode) {
     await message({
       title: 'もう一度ログインが必要です',
-      body: 'OneDrive のログインの期限が切れました。お手数ですが、最初からやり直してください。',
+      body: `安全のため、${escapeHtml(c.label)} のログインがもう一度必要になりました。<br>「つなぐ」を押すとログインの画面に移ります。<br>しらべた結果は覚えているので、戻ってからもう一度しらべると早く進みます。`,
+      ok: 'つなぐ',
+      cancel: 'やめる',
       tone: 'warn',
+      onOk: () => {
+        S.busy = false;
+        c.disconnect();
+        c.connect();
+      },
     });
     throw new DOMException('中止しました', 'AbortError');
   }

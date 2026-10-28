@@ -60,12 +60,17 @@ const G_SCOPE_READ = 'https://www.googleapis.com/auth/drive.metadata.readonly';
 const G_SCOPE_FILE = 'https://www.googleapis.com/auth/drive.file';
 const G_API = 'https://www.googleapis.com/drive/v3';
 
+const G_AUTH = 'https://accounts.google.com/o/oauth2/v2/auth';
+
 export class GoogleDrive {
-  constructor(clientId) {
+  // redirect: true のときは、ポップアップを使わずページごとログイン画面へ移動する。
+  // スマホのブラウザ（Brave など）ではポップアップでのログインが失敗することがあるため。
+  constructor(clientId, { redirect = false } = {}) {
     this.id = 'google';
     this.label = 'Google ドライブ';
     this.algo = 'md5';
     this.clientId = clientId;
+    this.redirectMode = redirect;
     this.tokenClient = null;
     this.pending = null;
     const saved = JSON.parse(sessionStorage.getItem('g_token') || 'null');
@@ -80,7 +85,7 @@ export class GoogleDrive {
 
   // ログインボタンを押した瞬間にポップアップを開けるよう、部品を先に読み込んでおく
   async prepare() {
-    if (this.tokenClient) return;
+    if (this.tokenClient || this.redirectMode) return;
     await loadScript('https://accounts.google.com/gsi/client');
     this.tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: this.clientId,
@@ -91,15 +96,50 @@ export class GoogleDrive {
   }
 
   get ready() {
-    return !!this.tokenClient;
+    return this.redirectMode || !!this.tokenClient;
   }
 
   // ボタンのクリック処理の中から「同期的に」呼ぶこと（ポップアップがブロックされないように）
   connect({ switchAccount = false } = {}) {
+    if (this.redirectMode) return this.connectByRedirect(switchAccount);
     if (!this.tokenClient) return Promise.reject(new Error('Google のログイン部品を読み込み中です。少し待ってからもう一度押してください。'));
     const p = new Promise((resolve, reject) => { this.pending = { resolve, reject }; });
     this.tokenClient.requestAccessToken({ prompt: switchAccount ? 'select_account' : '' });
     return p;
+  }
+
+  // Google のログイン画面へ移動する（戻ってきたら handleRedirect で受け取る）
+  connectByRedirect(switchAccount) {
+    const state = randomString(16);
+    sessionStorage.setItem('g_oauth_state', state);
+    const p = new URLSearchParams({
+      client_id: this.clientId,
+      redirect_uri: redirectUri(),
+      response_type: 'token',
+      scope: `${G_SCOPE_READ} ${G_SCOPE_FILE}`,
+      include_granted_scopes: 'true',
+      state,
+    });
+    if (switchAccount) p.set('prompt', 'select_account');
+    location.assign(`${G_AUTH}?${p}`);
+    return new Promise(() => {});
+  }
+
+  handleRedirect() {
+    const h = new URLSearchParams(location.hash.slice(1));
+    if (!h.has('access_token') && !h.has('error')) return null;
+    const saved = sessionStorage.getItem('g_oauth_state');
+    sessionStorage.removeItem('g_oauth_state');
+    history.replaceState(null, '', redirectUri());
+    if (h.has('error')) return { error: h.get('error') === 'access_denied' ? 'cancelled' : h.get('error') };
+    if (!saved || saved !== h.get('state')) return { error: 'state' };
+    const granted = (h.get('scope') || '').split(' ');
+    if (!granted.includes(G_SCOPE_READ)) return { error: 'scope' };
+    this.token = h.get('access_token');
+    this.exp = Date.now() + Number(h.get('expires_in') || 3600) * 1000;
+    this.canUpload = granted.includes(G_SCOPE_FILE);
+    sessionStorage.setItem('g_token', JSON.stringify({ token: this.token, exp: this.exp, canUpload: this.canUpload }));
+    return { ok: true };
   }
 
   onToken(resp) {

@@ -86,6 +86,7 @@ Google・Microsoft にログインしてもらうために、「このツール�
 5. 表示された **クライアント ID** を `app/config.js` の `googleClientId` に貼り付けます。
 
 > ログインのとき「このアプリは Google で確認されていません」と表示されます（個人で使うアプリのため）。テストユーザーに登録した方は「続行」を押せば使えます。
+> テストユーザーに登録していないアカウントを選ぶと「アクセスをブロック … エラー 403: access_denied」と表示されます。スマホにふだんログインしているアカウントが、登録したものと違うことがよくあるので、アカウントを選ぶ画面で確かめてください。
 
 ### 2. OneDrive 用の登録
 
@@ -106,7 +107,9 @@ Google・Microsoft にログインしてもらうために、「このツール�
 
 1. リポジトリの「Settings」→「Pages」→「Build and deployment」の Source を **GitHub Actions** にします（最初の一度だけ）。
 2. `main` に保存（push）すると、`app` フォルダの中身が `https://shiropoppo.github.io/Sukkiri-storage/` に公開されます。
-3. Google Cloud の OAuth クライアントの「承認済みの JavaScript 生成元」に `https://shiropoppo.github.io` を追加します（Microsoft を使う場合は、リダイレクト URI に上のアドレスそのものを追加）。
+3. Google Cloud の OAuth クライアントに、次の2つを登録します（Microsoft を使う場合は、Microsoft 側のリダイレクト URI にも上のアドレスそのものを追加）。
+   - 「承認済みの JavaScript 生成元」：`https://shiropoppo.github.io`（パソコンのポップアップ式ログイン用）
+   - 「承認済みのリダイレクト URI」：`https://shiropoppo.github.io/Sukkiri-storage/` と `http://localhost:8765/`（スマホは、ポップアップではなくページごとログイン画面へ移る方式を使うため）
 4. 使う方の Gmail アドレスをテストユーザーに追加し、アドレスを伝えます（QR コードにすると渡しやすいです）。
 
 `記録` フォルダ（削除・保存の記録）は `.gitignore` で公開対象から外しています。`config.js` のクライアント ID は、ブラウザに渡すための公開情報なので公開して問題ありません（クライアント シークレットは使っていません）。
