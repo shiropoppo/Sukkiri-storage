@@ -1,0 +1,13 @@
+# ビルドの途中でできるもの
+.gradle/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
+
+# できあがった APK（配るときは GitHub の Releases などに置く）
+dist/
+
+# アプリの署名鍵（公開しない。なくすと更新版を作れないので、別の場所にもバックアップする）
+keystore/

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Sukkiri" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/cream</item>
+        <item name="android:statusBarColor">@color/cream</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+    <color name="cream">#FFF8EE</color>
+    <color name="green">#2F8F6A</color>
+    <color name="green_soft">#E3F4EB</color>
+</resources>
