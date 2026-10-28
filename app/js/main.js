@@ -119,6 +119,7 @@ function errorText(e) {
   if (e instanceof AuthError) return 'ログインの有効期限が切れました。もう一度つないでください。';
   if (e instanceof HttpError) {
     if (e.status === 403 && /storageQuotaExceeded|quotaLimitReached|insufficientStorage/i.test(e.body || '')) return 'クラウドの空き容量が足りません。';
+    if (e.status === 403 && /insufficient|SCOPE/i.test(e.body || '')) return '許可が足りません。最初の画面でクラウドをつなぎ直し、許可の画面で2つともチェックを入れてください。';
     if (e.status === 403) return 'クラウドへの操作が許可されていません。つなぐときの許可をご確認ください。';
     return `クラウドとの通信でエラーが起きました（${e.status}）。少し時間をおいてお試しください。`;
   }
@@ -474,21 +475,32 @@ function startConnect(c, opts) {
   try { p = c.connect(opts); } catch (e) { p = Promise.reject(e); }
   c.connecting = true;
   renderConnect();
+  const done = () => {
+    c.connecting = false;
+    renderConnect();
+  };
   return p
     .then(() => refreshAccount(c))
-    .catch((e) => loginError(c, e.code || e.message))
-    .finally(() => {
-      c.connecting = false;
-      renderConnect();
+    .then(done)
+    .catch((e) => {
+      // 「つないでいます…」のまま残らないよう、先に表示を戻してからお知らせする
+      done();
+      return loginError(c, e.code || e.message);
     });
 }
 
 function loginError(c, code) {
-  const body = code === 'cancelled'
-    ? `ログインが最後まで終わりませんでした。<br>もう一度「${escapeHtml(c.label)}」を押してください。`
-    : code === 'scope'
-      ? 'Google ドライブの「ファイル情報の表示」の許可が必要です。<br>もう一度つないで、許可の画面でチェックを入れてください。'
-      : `うまくつなげませんでした。<br>インターネットにつながっているか確かめて、もう一度お試しください。<br><small>（${escapeHtml(code)}）</small>`;
+  let body;
+  if (code === 'cancelled') {
+    body = `ログインが最後まで終わりませんでした。<br>もう一度「${escapeHtml(c.label)}」を押してください。<br><br>`
+      + '<small>ログインの画面に「エラー 403」や「アクセスをブロック」と出た場合は、そのアカウントがまだ登録されていません。設定した方に登録してもらったアカウントを選んでください。</small>';
+  } else if (code === 'scope') {
+    body = 'Google ドライブの「ファイル情報の表示」の許可が必要です。<br>もう一度つないで、許可の画面で2つともチェックを入れてください。';
+  } else if (code === 'popup_failed_to_open') {
+    body = 'ログインの画面が開けませんでした。<br>ブラウザがポップアップを止めている可能性があります。アドレスバーのあたりに出る案内から、<b>このサイトのポップアップを許可</b>して、もう一度押してください。';
+  } else {
+    body = `うまくつなげませんでした。<br>インターネットにつながっているか確かめて、もう一度お試しください。<br><small>（${escapeHtml(code)}）</small>`;
+  }
   return message({ title: 'つなげませんでした', body, tone: 'warn' });
 }
 
